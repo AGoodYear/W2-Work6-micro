@@ -23,7 +23,7 @@ public class RedisUtil {
     private RedisTemplate<String, Object> redisTemplate;
 
     public void listAdd(String key, Object value) {
-        redisTemplate.opsForList().leftPush(key, value);
+        redisTemplate.opsForList().rightPush(key, value);
     }
 
     public List<Todo> listGet(String key, int s, int e) {

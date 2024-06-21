@@ -44,8 +44,10 @@ public class TodoServiceImpl implements TodoService {
     }
 
     public void loadRedis(String userId) {
-        String key = "memo" + userId;
-        List<Todo> list = getAllTodo(userId, 1, 10, "all");
+        String key = "memo:" + userId;
+        QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId).orderByDesc("created_at").last("limit 10");
+        List<Todo> list = todoMapper.selectList(queryWrapper);
         for (Todo todo1 : list) {
             redisUtil.listAdd(key, todo1);
         }
@@ -93,13 +95,31 @@ public class TodoServiceImpl implements TodoService {
 
     @Override
     public List<Todo> getAllTodo(String userId, int current, int size, String flag) {
-        QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
-        Page<Todo> page = new Page<>(current, size);
-        queryWrapper.eq("user_id", userId).orderByDesc("created_at");
-        if (!"all".equals(flag)) {
-            queryWrapper.eq("status", flag);
+        List<Todo> result = new ArrayList<>();
+        int start = current * size - size;
+        int end = current * size - 1;
+        String key = "memo:" + userId;
+        if ("all".equals(flag)) {
+            result.addAll(redisUtil.listGet(key, start, size));
+            if (result.isEmpty()) {
+                loadRedis(userId);
+            }
+            if (result.size() == (end - start + 1)) {
+                return result;
+            }
+            int redisSize = result.size();
+            QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
+            Page<Todo> pager = new Page<>(((end - result.size()) / size) + 1, size);
+            queryWrapper.eq("user_id", userId).orderByDesc("created_at");
+            List<Todo> list = todoMapper.selectPage(pager, queryWrapper).getRecords();
+            result.addAll(list.subList(redisSize, list.size()));
+        } else {
+            QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
+            Page<Todo> pager = new Page<>(((end) / size) + 1, size);
+            queryWrapper.eq("user_id", userId).eq("status", flag).orderByDesc("created_at");
+            result.addAll(todoMapper.selectPage(pager, queryWrapper).getRecords());
         }
-        return todoMapper.selectPage(page, queryWrapper).getRecords();
+        return result;
     }
 
     @Override
@@ -143,7 +163,8 @@ public class TodoServiceImpl implements TodoService {
             QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
             Page<Todo> pager = new Page<>(((end - result.size()) / size) + 1, size);
             queryWrapper.eq("user_id", userId).like("content", keyword).orderByDesc("created_at");
-            result.addAll(todoMapper.selectPage(pager, queryWrapper).getRecords().subList(redisSize, -1));
+            List<Todo> list = todoMapper.selectPage(pager, queryWrapper).getRecords();
+            result.addAll(list.subList(redisSize, list.size()));
         } else {
             QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
             Page<Todo> pager = new Page<>(((end) / size) + 1, size);
