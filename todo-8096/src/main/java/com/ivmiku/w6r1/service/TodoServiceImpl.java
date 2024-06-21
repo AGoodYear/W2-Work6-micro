@@ -104,10 +104,10 @@ public class TodoServiceImpl implements TodoService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public int deleteOne(String todoId) {
+    public int deleteOne(String todoId, String userId) {
         QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("id", todoId);
-        redisUtil.deleteKey("memo:" + StpUtil.getLoginId());
+        redisUtil.deleteKey("memo:" + userId);
         return todoMapper.delete(queryWrapper);
     }
 

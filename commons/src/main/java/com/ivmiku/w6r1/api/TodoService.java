@@ -22,7 +22,7 @@ public interface TodoService {
 
     List<Todo> getAllTodo(String userId, int current, int size, String flag);
 
-    int deleteOne(String todoId);
+    int deleteOne(String todoId, String userId);
 
     int deleteAll(String flag, String userId);
 

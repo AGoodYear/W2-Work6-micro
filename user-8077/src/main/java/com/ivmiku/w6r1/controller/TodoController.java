@@ -63,7 +63,7 @@ public class TodoController {
 
     @GetMapping("delete")
     public Object delete(@RequestParam String todoId) {
-        todoService.deleteOne(todoId);
+        todoService.deleteOne(todoId, StpUtil.getLoginId().toString());
         return JSON.toJSON(Result.ok());
     }
 
