@@ -14,6 +14,7 @@ import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,11 +45,13 @@ public class TodoServiceImpl implements TodoService {
 
     public void loadRedis(String userId) {
         String key = "memo" + userId;
-        List<Todo> list = getAllTodo(userId, 1, 10);
+        List<Todo> list = getAllTodo(userId, 1, 10, "all");
         for (Todo todo1 : list) {
             redisUtil.listAdd(key, todo1);
         }
     }
+
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public int changeToPengding(String todoId, String userId) {
         Todo todo = todoMapper.selectById(todoId);
@@ -59,6 +62,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int changeToFinish(String todoId, String userId) {
         Todo todo = todoMapper.selectById(todoId);
         UpdateWrapper<Todo> updateWrapper = Wrappers.update(todo);
@@ -68,6 +72,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int changeAllToPending(String userId) {
         UpdateWrapper<Todo> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("user_id", userId).eq("status", "finish");
@@ -77,6 +82,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int changeAllToFinish(String userId) {
         UpdateWrapper<Todo> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("user_id", userId).eq("status", "pending");
@@ -86,14 +92,18 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
-    public List<Todo> getAllTodo(String userId, int current, int size) {
+    public List<Todo> getAllTodo(String userId, int current, int size, String flag) {
         QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
         Page<Todo> page = new Page<>(current, size);
         queryWrapper.eq("user_id", userId).orderByDesc("created_at");
+        if (!"all".equals(flag)) {
+            queryWrapper.eq("status", flag);
+        }
         return todoMapper.selectPage(page, queryWrapper).getRecords();
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int deleteOne(String todoId) {
         QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("id", todoId);
@@ -102,6 +112,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public int deleteAll(String flag, String userId) {
         QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_id", userId);
