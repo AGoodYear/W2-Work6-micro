@@ -73,7 +73,7 @@ public class TodoController {
         return JSON.toJSON(Result.ok());
     }
 
-    @GetMapping
+    @GetMapping("getall")
     public Object getTodo(@RequestParam String flag, @RequestParam int page, @RequestParam int size) {
         return JSON.toJSON(Result.ok(todoService.getAllTodo(StpUtil.getLoginId().toString(), page, size, flag)));
     }
